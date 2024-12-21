@@ -7,7 +7,7 @@ import (
 
 type User struct {
 	ID        int64  `json:"id"`
-	UserName  string `json:"username"`
+	Username  string `json:"username"`
 	Email     string `json:"email"`
 	Password  string `json:"-"`
 	CreatedAt string `json:"created_at"`
@@ -24,7 +24,7 @@ func (store *UserStore) Create(ctx context.Context, user *User) error {
 	`
 
 	err := store.db.QueryRowContext(ctx, query,
-		user.UserName,
+		user.Username,
 		user.Email,
 		user.Password,
 	).Scan(
