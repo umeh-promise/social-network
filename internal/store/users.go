@@ -17,7 +17,7 @@ type UserStore struct {
 	db *sql.DB
 }
 
-func (store *UserStore) CreateUser(ctx context.Context, user *User) error {
+func (store *UserStore) Create(ctx context.Context, user *User) error {
 	query := `
 		INSERT INTO users (username, email, password)
 		VALUES ($1, $2, $3) RETURNING id, created_at
