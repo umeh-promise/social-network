@@ -49,7 +49,10 @@ func (app *application) mount() *chi.Mux {
 			router.Post("/", app.createPostHandler)
 
 			router.Route("/{id}", func(router chi.Router) {
+				router.Use(app.postMiddlewareHandler)
 				router.Get("/", app.getPostHandler)
+				router.Patch("/", app.updatePostHandler)
+				router.Delete("/", app.deletePostHandler)
 			})
 		})
 	})
