@@ -55,6 +55,15 @@ func (app *application) mount() *chi.Mux {
 				router.Delete("/", app.deletePostHandler)
 			})
 		})
+
+		router.Route("/users", func(router chi.Router) {
+			router.Route("/{id}", func(router chi.Router) {
+				router.Get("/", app.getUserHandler)
+				router.Put("/", app.followUserHandler)
+				router.Put("/", app.unfollowUserHandler)
+			})
+
+		})
 	})
 
 	return router
