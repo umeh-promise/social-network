@@ -64,6 +64,9 @@ func (app *application) mount() *chi.Mux {
 				router.Put("/unfollow", app.unfollowUserHandler)
 			})
 
+			router.Group(func(r chi.Router) {
+				router.Get("/feed", app.getUserFeedHandler)
+			})
 		})
 	})
 
