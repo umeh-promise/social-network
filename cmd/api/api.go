@@ -58,9 +58,10 @@ func (app *application) mount() *chi.Mux {
 
 		router.Route("/users", func(router chi.Router) {
 			router.Route("/{id}", func(router chi.Router) {
+				router.Use(app.userMiddlewareHandler)
 				router.Get("/", app.getUserHandler)
-				router.Put("/", app.followUserHandler)
-				router.Put("/", app.unfollowUserHandler)
+				router.Put("/follow", app.followUserHandler)
+				router.Put("/unfollow", app.unfollowUserHandler)
 			})
 
 		})
