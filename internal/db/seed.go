@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"math/rand/v2"
@@ -47,16 +48,20 @@ var comments = []string{"AI is evolving so fast; it’s both exciting and scary!
 	"Great insights on the future of AI. Looking forward to more.",
 	"I wonder how ethical considerations will shape AI development."}
 
-func Seed(store store.Storage) {
+func Seed(store store.Storage, db *sql.DB) {
 	ctx := context.Background()
 
 	users := generateUsers(100)
+	tx, _ := db.BeginTx(ctx, nil)
+
 	for _, user := range users {
-		if err := store.Users.Create(ctx, user); err != nil {
+		if err := store.Users.Create(ctx, tx, user); err != nil {
+			_ = tx.Rollback()
 			log.Println("Error creating users:", err)
 			return
 		}
 	}
+	tx.Commit()
 
 	posts := generatePosts(200, users)
 	for _, post := range posts {
@@ -72,7 +77,6 @@ func Seed(store store.Storage) {
 			log.Println("Error creating comments", err)
 		}
 	}
-
 	log.Println("Seed completed")
 
 }
@@ -84,7 +88,6 @@ func generateUsers(num int) []*store.User {
 		users[i] = &store.User{
 			Username: usernames[i%len(usernames)] + fmt.Sprintf("%d", i),
 			Email:    usernames[i%len(usernames)] + fmt.Sprintf("%d", i) + "@example.com",
-			Password: "pasword123",
 		}
 	}
 
