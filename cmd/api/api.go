@@ -1,12 +1,15 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	httpSwagger "github.com/swaggo/http-swagger/v2"
+	"github.com/umeh-promise/social/docs" // This is required to generate the swagger docs
 	"github.com/umeh-promise/social/internal/store"
 )
 
@@ -16,9 +19,10 @@ type application struct {
 }
 
 type config struct {
-	addr string
-	db   dbConfig
-	env  string
+	addr   string
+	db     dbConfig
+	env    string
+	apiURL string
 }
 
 type dbConfig struct {
@@ -44,6 +48,9 @@ func (app *application) mount() *chi.Mux {
 
 	router.Route("/v1", func(router chi.Router) {
 		router.Get("/health", app.healthCheckHandler)
+
+		docsURL := fmt.Sprintf("%s/swagger/doc.json", app.config.addr)
+		router.Get("/swagger/*", httpSwagger.Handler(httpSwagger.URL(docsURL)))
 
 		router.Route("/posts", func(router chi.Router) {
 			router.Post("/", app.createPostHandler)
@@ -74,6 +81,10 @@ func (app *application) mount() *chi.Mux {
 }
 
 func (app *application) run(mux *chi.Mux) error {
+	// Docs
+	docs.SwaggerInfo.Version = version
+	docs.SwaggerInfo.Host = app.config.apiURL
+	docs.SwaggerInfo.BasePath = "/v1"
 
 	server := &http.Server{
 		Addr:         app.config.addr,
