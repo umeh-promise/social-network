@@ -1,11 +1,10 @@
 package main
 
 import (
-	"log"
-
 	"github.com/umeh-promise/social/internal/db"
 	"github.com/umeh-promise/social/internal/env"
 	"github.com/umeh-promise/social/internal/store"
+	"go.uber.org/zap"
 )
 
 const version = "1.0.0"
@@ -41,6 +40,11 @@ func main() {
 		env: env.GetString("ENV", "development"),
 	}
 
+	// Logger
+	logger := zap.Must(zap.NewProduction()).Sugar()
+	defer logger.Sync()
+
+	// Database
 	db, err := db.New(
 		config.db.addr,
 		config.db.maxOpenConns,
@@ -49,20 +53,21 @@ func main() {
 	)
 
 	if err != nil {
-		log.Panic(err)
+		logger.Fatal(err)
 	}
 
 	defer db.Close()
-	log.Printf("DB connected successfully")
+	logger.Info("DB connected successfully")
 
 	store := store.NewStore(db)
 
 	app := &application{
 		config: config,
 		store:  store,
+		logger: logger,
 	}
 
 	router := app.mount()
 
-	log.Fatal(app.run(router))
+	logger.Fatal(app.run(router))
 }

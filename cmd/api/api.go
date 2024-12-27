@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
@@ -11,11 +10,13 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 	"github.com/umeh-promise/social/docs" // This is required to generate the swagger docs
 	"github.com/umeh-promise/social/internal/store"
+	"go.uber.org/zap"
 )
 
 type application struct {
 	config config
 	store  store.Storage
+	logger *zap.SugaredLogger
 }
 
 type config struct {
@@ -94,7 +95,7 @@ func (app *application) run(mux *chi.Mux) error {
 		IdleTimeout:  time.Minute,
 	}
 
-	log.Printf("Server is running at port %s", app.config.addr)
+	app.logger.Infow("Server has started", "addr", app.config.addr, "env", app.config.env)
 
 	return server.ListenAndServe()
 }
