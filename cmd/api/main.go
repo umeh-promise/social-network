@@ -5,6 +5,7 @@ import (
 
 	"github.com/umeh-promise/social/internal/db"
 	"github.com/umeh-promise/social/internal/env"
+	"github.com/umeh-promise/social/internal/mailer"
 	"github.com/umeh-promise/social/internal/store"
 	"go.uber.org/zap"
 )
@@ -31,8 +32,9 @@ const version = "1.0.0"
 
 func main() {
 	config := config{
-		addr:   env.GetString("ADDR", ":8080"),
-		apiURL: env.GetString("EXTERNAL_URL", "localhost:8080"),
+		addr:        env.GetString("ADDR", ":8080"),
+		apiURL:      env.GetString("EXTERNAL_URL", "localhost:8080"),
+		frontendURL: env.GetString("FRONTEND_URL", "localhost:4000"),
 		db: dbConfig{
 			addr:         env.GetString("DB_ADDR", "postgres://user:password@localhost:5432/social?sslmode=disable"),
 			maxOpenConns: env.GetInt("DB_MAX_OPEN_CONNS", 30),
@@ -41,7 +43,11 @@ func main() {
 		},
 		env: env.GetString("ENV", "development"),
 		mail: mailConfig{
-			exp: time.Hour * 24 * 3, // 3 days
+			exp:       time.Hour * 24 * 3, // 3 days
+			fromEmail: env.GetString("FROM_EMAIL", ""),
+			sendGrid: sendGridConfig{
+				apikey: env.GetString("SENDGRID_API_KEY", ""),
+			},
 		},
 	}
 
@@ -66,10 +72,13 @@ func main() {
 
 	store := store.NewStore(db)
 
+	mailer := mailer.NewSendgrid(config.mail.sendGrid.apikey, config.mail.fromEmail)
+
 	app := &application{
 		config: config,
 		store:  store,
 		logger: logger,
+		mailer: mailer,
 	}
 
 	router := app.mount()
