@@ -52,7 +52,7 @@ func NewStore(db *sql.DB) Storage {
 func WithTx(db *sql.DB, ctx context.Context, fn func(*sql.Tx) error) error {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	if err := fn(tx); err != nil {
