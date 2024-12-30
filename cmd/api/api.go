@@ -93,8 +93,9 @@ func (app *application) mount() *chi.Mux {
 			router.Route("/{id}", func(router chi.Router) {
 				router.Use(app.postMiddlewareHandler)
 				router.Get("/", app.getPostHandler)
-				router.Patch("/", app.updatePostHandler)
-				router.Delete("/", app.deletePostHandler)
+
+				router.Patch("/", app.checkPostOwnership("moderator", app.updatePostHandler))
+				router.Delete("/", app.checkPostOwnership("admin", app.deletePostHandler))
 			})
 		})
 
@@ -103,7 +104,8 @@ func (app *application) mount() *chi.Mux {
 
 			router.Route("/{id}", func(router chi.Router) {
 				router.Use(app.AuthTokenMiddleware)
-				router.Use(app.userMiddlewareHandler)
+				// router.Use(app.userMiddlewareHandler)
+
 				router.Get("/", app.getUserHandler)
 				router.Put("/follow", app.followUserHandler)
 				router.Put("/unfollow", app.unfollowUserHandler)

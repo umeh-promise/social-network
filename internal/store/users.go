@@ -24,6 +24,7 @@ type User struct {
 	CreatedAt string   `json:"created_at"`
 	IsActive  bool     `json:"is_active"`
 	RoleID    int64    `json:"role_id"`
+	Role      Role     `json:"role"`
 }
 
 type password struct {
@@ -83,14 +84,20 @@ func (store *UserStore) Create(ctx context.Context, tx *sql.Tx, user *User) erro
 func (store *UserStore) GetByID(ctx context.Context, userId int64) (*User, error) {
 	var user User
 	query := `
-		SELECT id, username, email, created_at FROM users
-		WHERE id = $1
+		SELECT users.id, username, email, created_at, roles.* FROM users
+		JOIN roles ON (users.role_id = roles.id)
+		WHERE users.id = $1
 	`
 
 	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
 	defer cancel()
 
-	err := store.db.QueryRowContext(ctx, query, userId).Scan(&user.ID, &user.Username, &user.Email, &user.CreatedAt)
+	err := store.db.QueryRowContext(ctx, query, userId).Scan(&user.ID, &user.Username, &user.Email, &user.CreatedAt,
+		&user.Role.ID,
+		&user.Role.Name,
+		&user.Role.Level,
+		&user.Role.Description,
+	)
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
