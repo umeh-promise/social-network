@@ -3,6 +3,7 @@ package main
 import (
 	"time"
 
+	"github.com/umeh-promise/social/internal/auth"
 	"github.com/umeh-promise/social/internal/db"
 	"github.com/umeh-promise/social/internal/env"
 	"github.com/umeh-promise/social/internal/mailer"
@@ -54,6 +55,11 @@ func main() {
 				username: env.GetString("AUTH_BASIC_USER", "admin"),
 				password: env.GetString("AUTH_BASIC_PASSWORD", "admin"),
 			},
+			token: tokenConfig{
+				secret: env.GetString("AUTH_SECRET", "basic"),
+				exp:    time.Hour * 24 * 3,
+				issuer: "social-network",
+			},
 		},
 	}
 
@@ -80,11 +86,14 @@ func main() {
 
 	mailer := mailer.NewSendgrid(config.mail.sendGrid.apikey, config.mail.fromEmail)
 
+	jwtAuthenticator := auth.NewJWTAuthenticator(config.auth.token.secret, config.auth.token.issuer, config.auth.token.issuer)
+
 	app := &application{
-		config: config,
-		store:  store,
-		logger: logger,
-		mailer: mailer,
+		config:        config,
+		store:         store,
+		logger:        logger,
+		mailer:        mailer,
+		authenticator: jwtAuthenticator,
 	}
 
 	router := app.mount()

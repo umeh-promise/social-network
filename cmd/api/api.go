@@ -9,16 +9,18 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 	"github.com/umeh-promise/social/docs" // This is required to generate the swagger docs
+	"github.com/umeh-promise/social/internal/auth"
 	"github.com/umeh-promise/social/internal/mailer"
 	"github.com/umeh-promise/social/internal/store"
 	"go.uber.org/zap"
 )
 
 type application struct {
-	config config
-	store  store.Storage
-	logger *zap.SugaredLogger
-	mailer mailer.Client
+	config        config
+	store         store.Storage
+	logger        *zap.SugaredLogger
+	mailer        mailer.Client
+	authenticator auth.Authenticator
 }
 
 type config struct {
@@ -33,6 +35,13 @@ type config struct {
 
 type authConfig struct {
 	basic basicConfig
+	token tokenConfig
+}
+
+type tokenConfig struct {
+	secret string
+	exp    time.Duration
+	issuer string
 }
 
 type basicConfig struct {
@@ -78,6 +87,7 @@ func (app *application) mount() *chi.Mux {
 		router.Get("/swagger/*", httpSwagger.Handler(httpSwagger.URL(docsURL)))
 
 		router.Route("/posts", func(router chi.Router) {
+			router.Use(app.AuthTokenMiddleware)
 			router.Post("/", app.createPostHandler)
 
 			router.Route("/{id}", func(router chi.Router) {
@@ -90,7 +100,9 @@ func (app *application) mount() *chi.Mux {
 
 		router.Route("/users", func(router chi.Router) {
 			router.Put("/activate/{token}", app.activateHandler)
+
 			router.Route("/{id}", func(router chi.Router) {
+				router.Use(app.AuthTokenMiddleware)
 				router.Use(app.userMiddlewareHandler)
 				router.Get("/", app.getUserHandler)
 				router.Put("/follow", app.followUserHandler)
@@ -98,13 +110,14 @@ func (app *application) mount() *chi.Mux {
 			})
 
 			router.Group(func(r chi.Router) {
-				router.Get("/feed", app.getUserFeedHandler)
+				router.With(app.AuthTokenMiddleware).Get("/feed", app.getUserFeedHandler)
 			})
 		})
 
 		// Public routes
 		router.Route("/auth", func(router chi.Router) {
 			router.Post("/user", app.registerUserHandler)
+			router.Post("/token", app.createTokenHandler)
 		})
 	})
 
