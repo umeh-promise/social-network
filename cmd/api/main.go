@@ -8,6 +8,7 @@ import (
 	"github.com/umeh-promise/social/internal/db"
 	"github.com/umeh-promise/social/internal/env"
 	"github.com/umeh-promise/social/internal/mailer"
+	"github.com/umeh-promise/social/internal/ratelimiter"
 	"github.com/umeh-promise/social/internal/store"
 	"github.com/umeh-promise/social/internal/store/cache"
 	"go.uber.org/zap"
@@ -58,6 +59,7 @@ func main() {
 				apikey: env.GetString("SENDGRID_API_KEY", ""),
 			},
 		},
+
 		auth: authConfig{
 			basic: basicConfig{
 				username: env.GetString("AUTH_BASIC_USER", "admin"),
@@ -69,7 +71,17 @@ func main() {
 				issuer: "social-network",
 			},
 		},
+		rateLimiter: ratelimiter.Config{
+			RequestPerTimeFrame: env.GetInt("RATELIMITER_REQUEST_COUNT", 20),
+			TimeFrame:           time.Second * 5,
+			Enabled:             env.GetBool("RATELIMITER_ENABLED", true),
+		},
 	}
+
+	// Rate limiter
+	rateLimiter := ratelimiter.NewFixedWindowLimiter(
+		config.rateLimiter.RequestPerTimeFrame, config.rateLimiter.TimeFrame,
+	)
 
 	// Logger
 	logger := zap.Must(zap.NewProduction()).Sugar()
@@ -111,6 +123,7 @@ func main() {
 		logger:        logger,
 		mailer:        mailer,
 		authenticator: jwtAuthenticator,
+		rateLimiter:   rateLimiter,
 	}
 
 	router := app.mount()

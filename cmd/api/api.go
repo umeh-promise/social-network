@@ -16,6 +16,7 @@ import (
 	"github.com/umeh-promise/social/docs" // This is required to generate the swagger docs
 	"github.com/umeh-promise/social/internal/auth"
 	"github.com/umeh-promise/social/internal/mailer"
+	"github.com/umeh-promise/social/internal/ratelimiter"
 	"github.com/umeh-promise/social/internal/store"
 	"github.com/umeh-promise/social/internal/store/cache"
 	"go.uber.org/zap"
@@ -28,6 +29,7 @@ type application struct {
 	logger        *zap.SugaredLogger
 	mailer        mailer.Client
 	authenticator auth.Authenticator
+	rateLimiter   ratelimiter.Limiter
 }
 
 type config struct {
@@ -39,6 +41,7 @@ type config struct {
 	frontendURL string
 	auth        authConfig
 	cache       cacheConfig
+	rateLimiter ratelimiter.Config
 }
 
 type cacheConfig struct {
@@ -89,6 +92,7 @@ func (app *application) mount() *chi.Mux {
 	router.Use(middleware.RealIP)
 	router.Use(middleware.Logger)
 	router.Use(middleware.Recoverer)
+	router.Use(app.RateLimitMiddleware)
 
 	// Set a timeout value on the request context (ctx), that will signal
 	// through ctx.Done() that the request has timed out and further
@@ -96,7 +100,8 @@ func (app *application) mount() *chi.Mux {
 	router.Use(middleware.Timeout(60 * time.Second))
 
 	router.Route("/v1", func(router chi.Router) {
-		router.With(app.BasicAuthMiddleware()).Get("/health", app.healthCheckHandler)
+		// router.With(app.BasicAuthMiddleware()).Get("/health", app.healthCheckHandler)
+		router.Get("/health", app.healthCheckHandler)
 
 		docsURL := fmt.Sprintf("%s/swagger/doc.json", app.config.addr)
 		router.Get("/swagger/*", httpSwagger.Handler(httpSwagger.URL(docsURL)))
