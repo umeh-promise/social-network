@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/umeh-promise/social-network/compare/v1.0.0...v1.1.0) (2025-01-03)
+
+
+### Features
+
+* Add workflow to update API version and release on main branch push ([abae445](https://github.com/umeh-promise/social-network/commit/abae445a9dce180fe5be965ba0681543f8fd8269))
+
 ## 1.0.0 (2025-01-03)
 
 
