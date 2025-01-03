@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"expvar"
 	"fmt"
 	"net/http"
 	"os"
@@ -12,9 +13,11 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 	"github.com/umeh-promise/social/docs" // This is required to generate the swagger docs
 	"github.com/umeh-promise/social/internal/auth"
+	"github.com/umeh-promise/social/internal/env"
 	"github.com/umeh-promise/social/internal/mailer"
 	"github.com/umeh-promise/social/internal/ratelimiter"
 	"github.com/umeh-promise/social/internal/store"
@@ -92,6 +95,14 @@ func (app *application) mount() *chi.Mux {
 	router.Use(middleware.RealIP)
 	router.Use(middleware.Logger)
 	router.Use(middleware.Recoverer)
+	router.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{env.GetString("CORS_ALLOWED_ORIGIN", "https://localhost:4000")},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: false,
+		MaxAge:           300,
+	}))
 	router.Use(app.RateLimitMiddleware)
 
 	// Set a timeout value on the request context (ctx), that will signal
@@ -102,6 +113,7 @@ func (app *application) mount() *chi.Mux {
 	router.Route("/v1", func(router chi.Router) {
 		// router.With(app.BasicAuthMiddleware()).Get("/health", app.healthCheckHandler)
 		router.Get("/health", app.healthCheckHandler)
+		router.With(app.BasicAuthMiddleware()).Get("/metrics", expvar.Handler().ServeHTTP)
 
 		docsURL := fmt.Sprintf("%s/swagger/doc.json", app.config.addr)
 		router.Get("/swagger/*", httpSwagger.Handler(httpSwagger.URL(docsURL)))
