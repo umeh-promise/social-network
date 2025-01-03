@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/umeh-promise/social-network/compare/v1.1.0...v1.2.0) (2025-01-03)
+
+
+### Features
+
+* add Dockerfile for multi-stage build and deployment ([5814d10](https://github.com/umeh-promise/social-network/commit/5814d1037bcc78696ca4752961a1a1234af307f6))
+
 ## [1.1.0](https://github.com/umeh-promise/social-network/compare/v1.0.0...v1.1.0) (2025-01-03)
 
 
