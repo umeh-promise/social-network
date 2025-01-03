@@ -29,7 +29,7 @@ func TestGetUser(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		req.Header.Set("Authorization", "Bearer 	"+testToken)
+		req.Header.Set("Authorization", "Bearer "+testToken)
 		rr := executeRequest(req, mux)
 		checkResponseCode(t, http.StatusOK, rr.Code)
 	})
