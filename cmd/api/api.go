@@ -12,12 +12,14 @@ import (
 	"github.com/umeh-promise/social/internal/auth"
 	"github.com/umeh-promise/social/internal/mailer"
 	"github.com/umeh-promise/social/internal/store"
+	"github.com/umeh-promise/social/internal/store/cache"
 	"go.uber.org/zap"
 )
 
 type application struct {
 	config        config
 	store         store.Storage
+	cacheStorage  cache.Storage
 	logger        *zap.SugaredLogger
 	mailer        mailer.Client
 	authenticator auth.Authenticator
@@ -31,6 +33,14 @@ type config struct {
 	mail        mailConfig
 	frontendURL string
 	auth        authConfig
+	cache       cacheConfig
+}
+
+type cacheConfig struct {
+	addr    string
+	pwd     string
+	db      int
+	enabled bool
 }
 
 type authConfig struct {

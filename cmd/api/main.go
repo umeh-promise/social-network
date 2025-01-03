@@ -3,11 +3,13 @@ package main
 import (
 	"time"
 
+	"github.com/go-redis/redis/v8"
 	"github.com/umeh-promise/social/internal/auth"
 	"github.com/umeh-promise/social/internal/db"
 	"github.com/umeh-promise/social/internal/env"
 	"github.com/umeh-promise/social/internal/mailer"
 	"github.com/umeh-promise/social/internal/store"
+	"github.com/umeh-promise/social/internal/store/cache"
 	"go.uber.org/zap"
 )
 
@@ -41,6 +43,12 @@ func main() {
 			maxOpenConns: env.GetInt("DB_MAX_OPEN_CONNS", 30),
 			maxIdleConns: env.GetInt("DB_MAX_IDLE_CONNS", 30),
 			maxIdleTime:  env.GetString("DB_MAX_IDLE_TIME", "15m"),
+		},
+		cache: cacheConfig{
+			addr:    env.GetString("REDIS_ADDR", "localhost:6379"),
+			pwd:     env.GetString("REDIS_PWD", ""),
+			db:      env.GetInt("REDIS_DB", 0),
+			enabled: env.GetBool("REDIS_ENABLED", false),
 		},
 		env: env.GetString("ENV", "development"),
 		mail: mailConfig{
@@ -82,7 +90,15 @@ func main() {
 	defer db.Close()
 	logger.Info("DB connected successfully")
 
+	// cache storage
+	var rdb *redis.Client
+	if config.cache.enabled {
+		rdb = cache.NewCacheClient(config.cache.addr, config.cache.pwd, config.cache.db)
+		logger.Info("redis cache connection pool is established")
+	}
+
 	store := store.NewStore(db)
+	cacheStorage := cache.NewCacheStorage(rdb)
 
 	mailer := mailer.NewSendgrid(config.mail.sendGrid.apikey, config.mail.fromEmail)
 
@@ -91,6 +107,7 @@ func main() {
 	app := &application{
 		config:        config,
 		store:         store,
+		cacheStorage:  cacheStorage,
 		logger:        logger,
 		mailer:        mailer,
 		authenticator: jwtAuthenticator,
